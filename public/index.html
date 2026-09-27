@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RVC AI Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
+<style>
+:root{
+  --bg:#f4f2ec; --panel:#fbfaf7; --surface:#ffffff; --line:#e2ded3; --ink:#1c1b18; --muted:#5f5b52;
+  --accent:#0f5f58; --accent-ink:#ffffff; --accent-soft:#dcebe8; --discord:#4752c4; --discord-soft:#e3e5f8;
+  --danger:#a8321f; --code:#f0eee7; --shadow:0 12px 32px rgba(28,27,24,.12);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#141412; --panel:#1b1a18; --surface:#23221f; --line:#34322d; --ink:#ecebe6; --muted:#a6a298;
+    --accent:#5fb8ad; --accent-ink:#0d1f1d; --accent-soft:#1f3634; --discord:#9aa3ff; --discord-soft:#2a2d4d;
+    --danger:#f08a74; --code:#2b2a26; --shadow:0 12px 32px rgba(0,0,0,.45);
+  }
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.65 "IBM Plex Sans Thai",system-ui,sans-serif}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+.hidden{display:none!important}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ---------- login ---------- */
+#login{min-height:100%;display:grid;place-items:center;padding:16px}
+#login form{width:min(360px,100%);background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:32px;display:flex;flex-direction:column;gap:14px}
+#login h1{margin:0;font-size:22px}
+#login p{margin:0;color:var(--muted);font-size:14px}
+.field{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted)}
+.input{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:11px 12px;min-height:44px}
+.btn{border:0;border-radius:10px;min-height:44px;padding:0 16px;background:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line);font-weight:500}
+.err{color:var(--danger);font-size:13px;min-height:1em}
+
+/* ---------- layout ---------- */
+#app{display:grid;grid-template-columns:280px 1fr;height:100%}
+aside{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.brand{display:flex;align-items:center;gap:10px;padding:18px 18px 12px}
+.brand b{font-size:16px}
+.brand .dot{width:28px;height:28px;border-radius:8px;background:var(--accent);display:grid;place-items:center;color:var(--accent-ink)}
+.new{margin:4px 14px 12px;display:flex;align-items:center;justify-content:center;gap:8px}
+.chats{flex:1;overflow:auto;padding:0 8px 8px;min-height:0}
+.chats h3{font-size:12px;font-weight:500;color:var(--muted);margin:10px 10px 6px;letter-spacing:.02em}
+.chat-item{display:flex;align-items:center;gap:8px;border-radius:10px;padding:9px 10px;min-height:44px;border:0;background:transparent;width:100%;text-align:left}
+.chat-item:hover{background:var(--bg)}
+.chat-item[aria-current="true"]{background:var(--accent-soft)}
+.chat-item .t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px}
+.badge{font-size:11px;border-radius:6px;padding:1px 6px;line-height:1.6;white-space:nowrap}
+.badge.discord{background:var(--discord-soft);color:var(--discord)}
+.badge.web{background:var(--bg);color:var(--muted);border:1px solid var(--line)}
+.side-foot{border-top:1px solid var(--line);padding:12px 16px;display:flex;flex-direction:column;gap:8px;font-size:13px;color:var(--muted)}
+.row{display:flex;align-items:center;gap:8px}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:2px 9px;border-radius:999px;border:1px solid var(--line)}
+.pill i{width:7px;height:7px;border-radius:50%;background:var(--muted);display:block}
+.pill.on i{background:#2f9e6a}
+.linkbtn{background:none;border:0;padding:0;color:var(--muted);text-decoration:underline;min-height:24px}
+
+main{display:flex;flex-direction:column;min-width:0;min-height:0}
+header{display:flex;align-items:center;gap:10px;padding:10px 20px;border-bottom:1px solid var(--line);background:var(--bg);position:relative}
+.icon-btn.menu-btn{display:none}
+.icon-btn{width:44px;height:44px;border-radius:10px;border:1px solid transparent;background:transparent;display:grid;place-items:center;color:var(--muted);flex:none}
+.icon-btn:hover{background:var(--panel);border-color:var(--line);color:var(--ink)}
+.title-input{flex:1;min-width:0;border:1px solid transparent;background:transparent;border-radius:8px;padding:6px 8px;font-weight:600;font-size:16px}
+.title-input:hover,.title-input:focus{border-color:var(--line);background:var(--surface)}
+
+/* model picker */
+.model-btn{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:0 12px;min-height:44px;max-width:340px}
+.model-btn span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px}
+.picker{position:absolute;right:20px;top:60px;width:min(460px,calc(100vw - 32px));max-height:70vh;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);display:flex;flex-direction:column;z-index:20}
+.picker .search{padding:12px;border-bottom:1px solid var(--line)}
+.picker .search input{width:100%}
+.picker .list{overflow:auto;padding:6px}
+.picker h4{margin:8px 10px 4px;font-size:12px;font-weight:500;color:var(--muted)}
+.opt{display:flex;flex-direction:column;align-items:flex-start;width:100%;text-align:left;border:0;background:transparent;border-radius:8px;padding:8px 10px;min-height:44px}
+.opt:hover,.opt.sel{background:var(--accent-soft)}
+.opt .id{font-size:13px}
+.opt .meta{font-size:12px;color:var(--muted)}
+
+/* messages */
+.scroll{flex:1;overflow:auto;min-height:0}
+.thread{max-width:820px;margin:0 auto;padding:28px 20px 12px;display:flex;flex-direction:column;gap:22px}
+.msg{display:flex;flex-direction:column;gap:6px}
+.msg .who{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.msg.user{align-items:flex-end}
+.msg.user .body{background:var(--accent);color:var(--accent-ink);border-radius:14px 14px 4px 14px;padding:10px 14px;max-width:85%;white-space:pre-wrap}
+.msg.ai .body{max-width:100%;overflow-wrap:anywhere}
+.msg.ai.error .body{color:var(--danger)}
+.body p{margin:0 0 .7em}.body p:last-child{margin-bottom:0}
+.body pre{background:var(--code);border:1px solid var(--line);border-radius:10px;padding:12px;overflow:auto;font:13px/1.5 "IBM Plex Mono",monospace}
+.body code{font-family:"IBM Plex Mono",monospace;font-size:.9em;background:var(--code);padding:1px 5px;border-radius:5px}
+.body pre code{background:none;padding:0}
+.body table{border-collapse:collapse}.body td,.body th{border:1px solid var(--line);padding:4px 8px}
+.cursor::after{content:"▍";color:var(--accent);animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+.empty{margin:auto;max-width:520px;text-align:center;color:var(--muted);padding:60px 20px}
+.empty h2{color:var(--ink);font-size:24px;margin:0 0 8px}
+.empty .cmds{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-top:16px}
+.empty code{font-family:"IBM Plex Mono",monospace;font-size:12px;background:var(--discord-soft);color:var(--discord);padding:2px 8px;border-radius:6px}
+
+/* composer */
+.composer{padding:12px 20px 18px}
+.box{max-width:820px;margin:0 auto;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:8px 8px 8px 14px;display:flex;align-items:flex-end;gap:8px}
+.box textarea{flex:1;border:0;background:transparent;resize:none;max-height:220px;min-height:44px;padding:10px 0;outline:none}
+.hint{max-width:820px;margin:6px auto 0;font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);padding:24px;width:min(560px,calc(100vw - 32px));box-shadow:var(--shadow)}
+dialog::backdrop{background:rgba(0,0,0,.35)}
+dialog h2{margin:0 0 12px;font-size:18px}
+dialog textarea{width:100%;min-height:160px;resize:vertical}
+
+@media (max-width: 820px){
+  #app{grid-template-columns:1fr}
+  aside{position:fixed;inset:0 auto 0 0;width:min(300px,86vw);z-index:30;transform:translateX(-100%);transition:transform .2s;box-shadow:var(--shadow)}
+  aside.open{transform:none}
+  .icon-btn.menu-btn{display:grid}
+  header{padding:8px 12px}
+  .model-btn{max-width:170px}
+  .thread{padding:20px 16px 8px}
+  .composer{padding:8px 16px 14px}
+  .picker{right:16px}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<section id="login" class="hidden">
+  <form id="loginForm">
+    <h1>RVC AI Hub</h1>
+    <p>เข้าสู่ระบบเพื่อใช้งาน AI หลายโมเดลผ่าน OpenRouter</p>
+    <label class="field">รหัสผ่าน
+      <input class="input" type="password" id="password" autocomplete="current-password" required>
+    </label>
+    <div class="err" id="loginErr" role="alert"></div>
+    <button class="btn" type="submit">เข้าสู่ระบบ</button>
+  </form>
+</section>
+
+<!-- ============ APP ============ -->
+<div id="app" class="hidden">
+  <aside id="side">
+    <div class="brand">
+      <div class="dot" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"/></svg></div>
+      <b>RVC AI Hub</b>
+    </div>
+    <button class="btn new" id="newChat">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      แชทใหม่
+    </button>
+    <nav class="chats" aria-label="รายการแชท">
+      <h3>แชททั้งหมด</h3>
+      <div id="chatList"></div>
+    </nav>
+    <div class="side-foot">
+      <div class="row"><span class="pill" id="discordPill"><i></i><span>Discord</span></span></div>
+      <div class="row">เครดิต: <span class="mono" id="credits">—</span></div>
+      <button class="linkbtn" id="logout" type="button">ออกจากระบบ</button>
+    </div>
+  </aside>
+
+  <main>
+    <header>
+      <button class="icon-btn menu-btn" id="menuBtn" aria-label="เปิดเมนู">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+      <input class="title-input" id="title" aria-label="ชื่อแชท" placeholder="แชทใหม่">
+      <button class="model-btn" id="modelBtn" aria-haspopup="listbox" aria-expanded="false">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 9h6v6H9z"/></svg>
+        <span class="mono" id="modelName">—</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <button class="icon-btn" id="sysBtn" aria-label="ตั้งค่า system prompt">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
+      </button>
+      <button class="icon-btn" id="delBtn" aria-label="ลบแชทนี้">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>
+      </button>
+
+      <div class="picker hidden" id="picker" role="dialog" aria-label="เลือกโมเดล">
+        <div class="search"><input class="input" id="modelSearch" placeholder="ค้นหาโมเดล เช่น claude, gpt, gemini, free" aria-label="ค้นหาโมเดล"></div>
+        <div class="list" id="modelList" role="listbox"></div>
+      </div>
+    </header>
+
+    <div class="scroll" id="scroll">
+      <div class="thread" id="thread"></div>
+    </div>
+
+    <div class="composer">
+      <form class="box" id="composer">
+        <textarea id="input" rows="1" placeholder="พิมพ์ข้อความ… (Enter ส่ง, Shift+Enter ขึ้นบรรทัดใหม่)" aria-label="ข้อความ"></textarea>
+        <button class="btn" id="sendBtn" type="submit">ส่ง</button>
+        <button class="btn ghost hidden" id="stopBtn" type="button">หยุด</button>
+      </form>
+      <div class="hint"><span>ซิงก์กับ Discord แบบเรียลไทม์</span><span id="usage"></span></div>
+    </div>
+  </main>
+</div>
+
+<dialog id="sysDlg">
+  <form method="dialog" id="sysForm">
+    <h2>System prompt ของแชทนี้</h2>
+    <textarea class="input" id="sysText"></textarea>
+    <div class="row" style="justify-content:flex-end;margin-top:14px">
+      <button class="btn ghost" value="cancel">ยกเลิก</button>
+      <button class="btn" value="save" id="sysSave">บันทึก</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const S = { state: null, conv: null, models: null, streaming: {}, sendingId: null };
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, {
+    ...opts,
+    headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+    body: opts.body ? JSON.stringify(opts.body) : undefined,
+  });
+  if (res.status === 401 && path !== '/api/login') { showLogin(); throw new Error('unauthorized'); }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  return data;
+}
+
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function md(text) {
+  if (window.marked && window.DOMPurify) return DOMPurify.sanitize(marked.parse(text, { breaks: true }));
+  return '<p>' + esc(text).replace(/\n/g, '<br>') + '</p>';
+}
+const shortModel = (id) => (id || '').split('/').pop();
+const price = (m) => m.free ? 'ฟรี' : (m.inputPrice != null ? `$${m.inputPrice.toFixed(2)} / $${m.outputPrice.toFixed(2)} ต่อ 1M` : '');
+
+// ---------- auth ----------
+function showLogin() { $('#app').classList.add('hidden'); $('#login').classList.remove('hidden'); $('#password').focus(); }
+$('#loginForm').onsubmit = async (e) => {
+  e.preventDefault();
+  $('#loginErr').textContent = '';
+  try { await api('/api/login', { method: 'POST', body: { password: $('#password').value } }); boot(); }
+  catch (err) { $('#loginErr').textContent = err.message; }
+};
+$('#logout').onclick = async () => { await api('/api/logout', { method: 'POST' }); location.reload(); };
+
+// ---------- rendering ----------
+function renderSidebar() {
+  const st = S.state;
+  $('#chatList').innerHTML = st.conversations.map((c) => `
+    <button class="chat-item" data-id="${c.id}" aria-current="${c.id === st.activeId}">
+      <span class="t">${esc(c.title)}</span>
+      <span class="badge ${c.source}">${c.source === 'discord' ? 'Discord' : 'เว็บ'}</span>
+    </button>`).join('') || '<p style="padding:0 10px;color:var(--muted);font-size:13px">ยังไม่มีแชท</p>';
+  const d = st.discord || {};
+  const pill = $('#discordPill');
+  pill.classList.toggle('on', !!d.ready);
+  pill.querySelector('span').textContent = d.ready ? `Discord · ${d.tag}` : d.enabled ? 'Discord · กำลังเชื่อมต่อ' : 'Discord · ปิดอยู่';
+  $('#modelName').textContent = shortModel(st.currentModel);
+  $('#modelBtn').title = st.currentModel;
+}
+
+function renderThread() {
+  const c = S.conv;
+  $('#title').value = c ? c.title : '';
+  const streaming = c && S.streaming[c.id];
+  if (!c || (!c.messages.length && streaming == null)) {
+    $('#thread').innerHTML = `<div class="empty">
+      <h2>เริ่มคุยกับ AI</h2>
+      <p>เลือกโมเดลที่มุมขวาบน แล้วพิมพ์คำถามได้เลย หรือสั่งจาก Discord ด้วยคำสั่ง</p>
+      <div class="cmds"><code>/ask</code><code>/model set</code><code>/new</code><code>/chats</code><code>/status</code></div>
+    </div>`;
+    return;
+  }
+  let html = c.messages.map((m) => m.role === 'user'
+    ? `<div class="msg user"><div class="who">${m.source === 'discord' ? '<span class="badge discord">Discord</span>' : ''}คุณ</div><div class="body">${esc(m.content)}</div></div>`
+    : `<div class="msg ai ${m.error ? 'error' : ''}"><div class="who"><span class="mono">${esc(m.model || '')}</span>${m.usage?.cost != null ? ` · $${Number(m.usage.cost).toFixed(4)}` : ''}</div><div class="body">${md(m.content)}</div></div>`
+  ).join('');
+  if (streaming != null) {
+    html += `<div class="msg ai"><div class="who"><span class="mono">${esc(S.streamModel || S.state.currentModel)}</span></div><div class="body cursor" id="live">${md(streaming || '')}</div></div>`;
+  }
+  $('#thread').innerHTML = html;
+  const busy = streaming != null;
+  $('#sendBtn').classList.toggle('hidden', busy);
+  $('#stopBtn').classList.toggle('hidden', !busy);
+  scrollDown();
+}
+
+function scrollDown() { const el = $('#scroll'); el.scrollTop = el.scrollHeight; }
+
+// ---------- data ----------
+async function refreshState() {
+  S.state = await api('/api/state');
+  renderSidebar();
+  const id = S.state.activeId;
+  if (id && (!S.conv || S.conv.id !== id)) await loadConv(id);
+  if (!id) { S.conv = null; renderThread(); }
+}
+async function loadConv(id) {
+  try { S.conv = await api('/api/conversations/' + id); } catch { S.conv = null; }
+  renderThread();
+}
+async function refreshCredits() {
+  try { const c = await api('/api/credits'); $('#credits').textContent = `$${c.remaining.toFixed(2)}`; }
+  catch { $('#credits').textContent = '—'; }
+}
+
+// ---------- live events (sync กับ Discord) ----------
+function connectEvents() {
+  const es = new EventSource('/api/events');
+  es.addEventListener('change', async (e) => {
+    const d = JSON.parse(e.data);
+    await refreshState();
+    if (S.conv && d.id === S.conv.id && (d.type === 'message' || d.type === 'conversation:update')) await loadConv(d.id);
+    if (d.type === 'message') refreshCredits();
+  });
+  es.addEventListener('stream', (e) => {
+    const d = JSON.parse(e.data);
+    if (d.type === 'start') { S.streaming[d.id] = ''; S.streamModel = d.model; if (S.conv?.id === d.id) renderThread(); }
+    if (d.type === 'token') {
+      S.streaming[d.id] = (S.streaming[d.id] || '') + d.delta;
+      const live = $('#live');
+      if (S.conv?.id === d.id && live) { live.innerHTML = md(S.streaming[d.id]); scrollDown(); }
+    }
+    if (d.type === 'end') { delete S.streaming[d.id]; if (S.conv?.id === d.id) loadConv(d.id); }
+  });
+  es.onerror = () => { es.close(); setTimeout(connectEvents, 3000); };
+}
+
+// ---------- actions ----------
+$('#chatList').onclick = async (e) => {
+  const b = e.target.closest('.chat-item'); if (!b) return;
+  await api('/api/active', { method: 'POST', body: { id: b.dataset.id } });
+  $('#side').classList.remove('open');
+};
+$('#newChat').onclick = async () => {
+  await api('/api/conversations', { method: 'POST', body: {} });
+  $('#side').classList.remove('open');
+  $('#input').focus();
+};
+$('#delBtn').onclick = async () => {
+  if (!S.conv || !confirm(`ลบแชท "${S.conv.title}" ?`)) return;
+  await api('/api/conversations/' + S.conv.id, { method: 'DELETE' });
+};
+$('#title').onchange = async (e) => {
+  if (S.conv) await api('/api/conversations/' + S.conv.id, { method: 'PATCH', body: { title: e.target.value.trim() || 'แชทใหม่' } });
+};
+$('#menuBtn').onclick = () => $('#side').classList.toggle('open');
+
+$('#sysBtn').onclick = () => {
+  if (!S.conv) return alert('เริ่มแชทก่อน แล้วค่อยตั้ง system prompt');
+  $('#sysText').value = S.conv.systemPrompt || '';
+  $('#sysDlg').showModal();
+};
+$('#sysDlg').onclose = async () => {
+  if ($('#sysDlg').returnValue === 'save' && S.conv)
+    await api('/api/conversations/' + S.conv.id, { method: 'PATCH', body: { systemPrompt: $('#sysText').value } });
+};
+
+// composer
+const input = $('#input');
+input.oninput = () => { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 220) + 'px'; };
+input.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); $('#composer').requestSubmit(); } };
+$('#composer').onsubmit = async (e) => {
+  e.preventDefault();
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = ''; input.oninput();
+  try {
+    const r = await api('/api/chat', { method: 'POST', body: { text, conversationId: S.conv?.id } });
+    if (r.error) $('#usage').textContent = r.error;
+    else if (r.reply?.usage) $('#usage').textContent = `${r.reply.usage.total_tokens ?? ''} token` + (r.reply.usage.cost != null ? ` · $${Number(r.reply.usage.cost).toFixed(4)}` : '');
+  } catch (err) { alert(err.message); input.value = text; }
+};
+$('#stopBtn').onclick = () => S.conv && api('/api/stop', { method: 'POST', body: { id: S.conv.id } });
+
+// ---------- model picker ----------
+const picker = $('#picker');
+function openPicker(open) {
+  picker.classList.toggle('hidden', !open);
+  $('#modelBtn').setAttribute('aria-expanded', open);
+  if (open) { $('#modelSearch').value = ''; renderModels(); $('#modelSearch').focus(); loadModels(); }
+}
+async function loadModels() {
+  if (S.models) return;
+  $('#modelList').innerHTML = '<p style="padding:10px;color:var(--muted)">กำลังโหลดรายชื่อโมเดล…</p>';
+  try { S.models = await api('/api/models'); } catch (e) { $('#modelList').innerHTML = `<p class="err" style="padding:10px">${esc(e.message)}</p>`; return; }
+  renderModels();
+}
+function renderModels() {
+  if (!S.models) return;
+  const q = $('#modelSearch').value.toLowerCase().trim();
+  const cur = S.state.currentModel;
+  const favs = S.state.favorites;
+  const match = (m) => !q || m.id.toLowerCase().includes(q) || m.name.toLowerCase().includes(q) || (q === 'free' && m.free);
+  const opt = (m) => `<button class="opt ${m.id === cur ? 'sel' : ''}" role="option" aria-selected="${m.id === cur}" data-id="${esc(m.id)}">
+      <span class="id mono">${esc(m.id)}</span><span class="meta">${esc(m.name)}${price(m) ? ' · ' + price(m) : ''}${m.context ? ' · ' + (m.context / 1000).toFixed(0) + 'k ctx' : ''}</span></button>`;
+  const favList = favs.map((id) => S.models.find((m) => m.id === id) || { id, name: id }).filter(match);
+  const rest = S.models.filter((m) => !favs.includes(m.id) && match(m)).slice(0, 200);
+  $('#modelList').innerHTML =
+    (favList.length ? '<h4>โมเดลโปรด</h4>' + favList.map(opt).join('') : '') +
+    (rest.length ? `<h4>ทั้งหมด (${S.models.filter(match).length})</h4>` + rest.map(opt).join('') : '') ||
+    '<p style="padding:10px;color:var(--muted)">ไม่พบโมเดล</p>';
+}
+$('#modelBtn').onclick = (e) => { e.stopPropagation(); openPicker(picker.classList.contains('hidden')); };
+$('#modelSearch').oninput = renderModels;
+$('#modelList').onclick = async (e) => {
+  const b = e.target.closest('.opt'); if (!b) return;
+  await api('/api/model', { method: 'POST', body: { model: b.dataset.id } });
+  openPicker(false);
+};
+document.addEventListener('click', (e) => { if (!picker.contains(e.target) && e.target !== $('#modelBtn')) openPicker(false); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') openPicker(false); });
+
+// ---------- boot ----------
+async function boot() {
+  try { await refreshState(); } catch { return; }
+  $('#login').classList.add('hidden');
+  $('#app').classList.remove('hidden');
+  connectEvents();
+  refreshCredits();
+  input.focus();
+}
+boot();
+</script>
+</body>
+</html>
